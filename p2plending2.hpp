@@ -5,9 +5,9 @@
  */
 #include <eosiolib/eosio.hpp>
 #include <time.h> 
+#include<stdio.h>
 
-
-
+using namespace eosio;
 namespace p2p_lending {
       static const account_name lending_account  = N(lendings);
       static const account_name lender_account   = N(lenders);
@@ -17,26 +17,26 @@ namespace p2p_lending {
       static const account_name admin_lending    = N(adminlen);
 
 
-      static const account_name code_account = N(p2plending2);
+      static const account_name code_account = N(p2plend);
       
       
       //@abi table
       struct lender_type {
             account_name     lender_n;//unique account name for lender
-            unit32_t         pkey_l //unique key for lender
+            uint32_t         pkey_l; //unique key for lender
             uint32_t         balance;//initializ to zero
             uint8_t          lending_score;//initilize to zero
-            unit8_t          age;//should be more than 21
-            string           hash_aadhar;
-            string           hash_l
+            uint8_t          age;//should be more than 21
+            std::string           hash_aadhar;
+            std::string           hash_l;
             bool             verified;
-            unit64_t         epoch_ist;//timestamp of last verification
+            uint64_t         epoch_ist;//timestamp of last verification
  
             auto primary_key()      const { return pkey_l; }
             account_name get_name() const { return lender_n;}
-            string get_hash()       const {return hash_aadhar;}
-            string get_hash_l()     const {return hash_l;}
-            unit64_t get_time()     const {return epoch_ist;}
+            std::string get_hash()       const {return hash_aadhar;}
+            std::string get_hash_l()     const {return hash_l;}
+            uint64_t get_time()     const {return epoch_ist;}
 
 
             EOSLIB_SERIALIZE( lender_type, (lender_n)(pkey_l)(balance)(lending_score)(age)(hash_aadhar)(hash_l)(verified)(epoch_ist) )
@@ -44,10 +44,10 @@ namespace p2p_lending {
       //@abi action
       struct create_lender {
             account_name     lender_n;
-            unit32_t         pkey_l;
-            unit8_t          age;
-            string           hash_aadhar;
-            string           hash_l;
+            uint32_t         pkey_l;
+            uint8_t          age;
+            std::string           hash_aadhar;
+            std::string           hash_l;
 
             EOSLIB_SERIALIZE( create_lender, (lender_n)(pkey_l)(age)(hash_aadhar)(hash_l) )
       };
@@ -56,56 +56,70 @@ namespace p2p_lending {
             uint32_t         pkey_l;
             uint32_t         balance;
             uint8_t          lending_score;
-            unit8_t          age;
-            string           hash_aadhar;
-            string           hash_l
+            uint8_t          age;
+            std::string           hash_aadhar;
+            std::string           hash_l;
             bool             verified;
 
             EOSLIB_SERIALIZE( update_l, (pkey_l)(balance)(lending_score)(age)(hash_aadhar)(hash_l)(verified) )
       };
+      //@abi action
+      struct close_l {
+            account_name     lender_n;
+            uint32_t         pkey_l;
+
+            EOSLIB_SERIALIZE( close_l, (lender_n)(pkey_l) )
+      };
       //@abi table
       struct borrower_type {
             account_name     borrower_n;//unique account name for borrower
-            unit32_t         pkey_b;
+            uint32_t         pkey_b;
             uint16_t         cibil_score; //initialize with 0, can only be changed by some authorizing authority
             uint8_t          risk_category;//integer from 1 to 5 with 5 being the worst, can only be changed by authorizing authority
-            unit8_t          age;//should be greater than or equal to 21
-            unit32_t         income;//should be more than 3lakh
-            unit16_t         leverage_ratio;//should be less than 2
-            string           hash_aadhar//hash of aadhar, will be used to prove the identity of user in case of information loss
-            string           hash_b;// hash of all the static borrower information
+            uint8_t          age;//should be greater than or equal to 21
+            uint32_t         income;//should be more than 3lakh
+            uint16_t         leverage_ratio;//should be less than 2
+            std::string           hash_aadhar;//hash of aadhar, will be used to prove the identity of user in case of information loss
+            std::string           hash_b;// hash of all the static borrower information
             bool             verified;//initialize with 0, only admin_b can change it
-            unit64_t         epoch_ist; //timestamp of last verification
+            uint64_t         epoch_ist; //timestamp of last verification
             
             auto primary_key()      const { return pkey_b; }
             account_name get_name() const {return borrower_n;}
-            string get_hash()       const {return hash_aadhar;}
-            string get_hash_b()     const {return hash_b;}
-            unit64_t get_time()     const {return epoch_ist;}
+            std::string get_hash()       const {return hash_aadhar;}
+            std::string get_hash_b()     const {return hash_b;}
+            uint64_t get_time()     const {return epoch_ist;}
 
             EOSLIB_SERIALIZE( borrower_type, (borrower_n)(pkey_b)(cibil_score)(risk_category)(age)(income)(leverage_ratio)(hash_aadhar)(hash_b)(verified)(epoch_ist) )
       };
       //@abi action
       struct create_borrower {
             account_name     borrower_n;
-            unit32_t         pkey_b;
-            unit8_t          age;
-            unit32_t         income;
-            string           hash_aadhar;
-            string           hash_b;
+            uint32_t         pkey_b;
+            uint8_t          age;
+            uint32_t         income;
+            std::string           hash_aadhar;
+            std::string           hash_b;
 
             EOSLIB_SERIALIZE( create_borrower, (borrower_n)(pkey_b)(age)(income)(hash_aadhar)(hash_b) )
+      };
+      //@abi action
+      struct close_b {
+            account_name     borrower_n;
+            uint32_t         pkey_b;
+
+            EOSLIB_SERIALIZE( close_b, (borrower_n)(pkey_b) )
       };
       //@abi action
       struct update_b {
             uint32_t         pkey_b;
             uint16_t         cibil_score; 
             uint8_t          risk_category;
-            unit8_t          age;
-            unit32_t         income;
-            unit16_t         leverage_ratio;
-            string           hash_aadhar;
-            string           hash_b;
+            uint8_t          age;
+            uint32_t         income;
+            uint16_t         leverage_ratio;
+            std::string           hash_aadhar;
+            std::string           hash_b;
             bool             verified;
             EOSLIB_SERIALIZE( update_b, (pkey_b)(cibil_score)(risk_category)(age)(income)(leverage_ratio)(hash_aadhar)(hash_b)(verified))
       };
@@ -119,22 +133,22 @@ namespace p2p_lending {
             uint32_t          pkey_b;
             uint32_t          pkey_l;
             uint32_t          net_borrowed;
-            unit32_t          principal;
+            uint32_t          principal;
             uint32_t          penalty;
             uint8_t           maturity;
             uint8_t           months_left;
             uint8_t           emi;
             double            interest;
             uint32_t          unique_serial_number;
-            unit32_t          loan_id;
-            unit64_t          epoch_ist;//time of start/last_update in lending
+            uint32_t          loan_id;
+            uint64_t          epoch_ist;//time of start/last_update in lending
 
             auto primary_key()    const { return unique_serial_number; }
             uint32_t get_pkeyl()  const { return pkey_l;}
             uint32_t get_pkeyb()  const { return pkey_b;}
             uint32_t get_loanid() const { return loan_id;}
-            unit64_t get_time()   const { return epoch_ist;}
-            unit8_t  get_mleft()  const { return get_mleft;}
+            uint64_t get_time()   const { return epoch_ist;}
+            uint8_t  get_mleft()  const { return months_left;}
 
             EOSLIB_SERIALIZE( lending, (pkey_b)(pkey_l)(net_borrowed)(principal)(penalty)(maturity)(months_left)(emi)(interest)(unique_serial_number)(loan_id)(epoch_ist) )
       };
@@ -147,9 +161,9 @@ namespace p2p_lending {
             uint32_t          principal;
             uint8_t           maturity;
             uint8_t           emi;
-            unit8_t           interest;
+            uint8_t           interest;
             uint32_t          unique_serial_number;
-            unit32_t          loan_id;
+            uint32_t          loan_id;
 
             EOSLIB_SERIALIZE( create_lending, (pkey_b)(pkey_l)(net_borrowed)(principal)(maturity)(emi)(interest)(unique_serial_number)(loan_id) )
       };
@@ -166,7 +180,7 @@ namespace p2p_lending {
       struct update_lending {
             
             uint8_t        months_left;
-            unit32_t       penalty;
+            uint32_t       penalty;
             uint32_t       loan_id;
             
            
@@ -179,7 +193,7 @@ namespace p2p_lending {
       /**
       * @brief table definition, used to store existing lendings and their current state
       */
-      typedef eosio::multi_index< lending_account, lending, indexed_by< N(bypkeyb), const_mem_fun<lending, unit32_t, &lending::get_pkeyb> >, indexed_by< N(bypkeyl), const_mem_fun<lending, unit32_t, &lending::get_pkeyl> >, indexed_by< N(byloadid), const_mem_fun<lending, unit32_t, &lending::get_loanid> >, indexed_by< N(bytime), const_mem_fun<lending, unit64_t, &lending::get_time> >,indexed_by< N(bymleft), const_mem_fun<lending, unit8_t, &lending::get_mleft> > > lendings;
-      typedef eosio::multi_index< lender_account, lender_type,indexed_by< N(byname), const_mem_fun<lender_type, account_name, &lender_type::get_name> >, indexed_by< N(byhash), const_mem_fun<lender_type, string, &lender_type::get_hash> >,indexed_by< N(byhashl), const_mem_fun<lender_type, string, &lender_type::get_hash_l> >,indexed_by< N(bytime), const_mem_fun<lender_type, unit64_t, &lender_type::get_time> > > lenders;
-      typedef eosio::multi_index< borrower_account, borrower_type,indexed_by< N(byname), const_mem_fun<borrower_type, account_name, &borrower_type::get_name> >,indexed_by< N(byhash), const_mem_fun<borrower_type, string, &borrower_type::get_hash> >,indexed_by< N(byhashb), const_mem_fun<borrower_type, string, &borrower_type::get_hash_b> >,indexed_by< N(bytime), const_mem_fun<borrower_type, string, &borrower_type::get_time> > > borrowers;
+      typedef eosio::multi_index< lending_account, lending, indexed_by< N(bypkeyb), const_mem_fun<lending, uint32_t, &lending::get_pkeyb> >, indexed_by< N(bypkeyl), const_mem_fun<lending, uint32_t, &lending::get_pkeyl> >, indexed_by< N(byloadid), const_mem_fun<lending, uint32_t, &lending::get_loanid> >, indexed_by< N(bytime), const_mem_fun<lending, uint64_t, &lending::get_time> >,indexed_by< N(bymleft), const_mem_fun<lending, uint8_t, &lending::get_mleft> > > lendings;
+      typedef eosio::multi_index< lender_account, lender_type,indexed_by< N(byname), const_mem_fun<lender_type, account_name, &lender_type::get_name> >, indexed_by< N(byhash), const_mem_fun<lender_type, std::string, &lender_type::get_hash> >,indexed_by< N(byhashl), const_mem_fun<lender_type, std::string, &lender_type::get_hash_l> >,indexed_by< N(bytime), const_mem_fun<lender_type, uint64_t, &lender_type::get_time> > > lenders;
+      typedef eosio::multi_index< borrower_account, borrower_type,indexed_by< N(byname), const_mem_fun<borrower_type, account_name, &borrower_type::get_name> >,indexed_by< N(byhash), const_mem_fun<borrower_type, std::string, &borrower_type::get_hash> >,indexed_by< N(byhashb), const_mem_fun<borrower_type, std::string, &borrower_type::get_hash_b> >,indexed_by< N(bytime), const_mem_fun<borrower_type, uint64_t, &borrower_type::get_time> > > borrowers;
 }

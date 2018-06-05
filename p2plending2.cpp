@@ -3,25 +3,27 @@
  *  @copyright defined in eos/LICENSE.txt
  */
 #include "p2plending2.hpp"
-#include <time.h> 
+#include <ctime> 
+#include<stdio.h>
 
 using namespace eosio;
 namespace p2p_lending {
+
 struct impl {
    time_t timer;
    time(&timer);
    gmtime(&timer);
-   unit64_t current_time= timer + 19800;//adding 5:30 hours to GMT Timing
+   uint64_t current_time= timer + 19800;//adding 5:30 hours to GMT Timing
 
    uint8_t  age_limit           = 21;
-   unit32_t income_limit       = 300000;
-   unit32_t lending_limit      = 500000;
-   unit32_t borrowing_limit    = 500000;
-   unit32_t per_lending_limit  = 20000;
+   uint32_t income_limit       = 300000;
+   uint32_t lending_limit      = 500000;
+   uint32_t borrowing_limit    = 500000;
+   uint32_t per_lending_limit  = 20000;
    uint8_t  interest_limit     = 30;
    uint8_t  max_months         = 30;
    uint8_t  max_lratio         = 1;//max leverage ratio
-   unit16_t cibil_limit        = 500;
+   uint16_t cibil_limit        = 500;
    uint8_t  risk_limit         = 5;
 
    
@@ -35,7 +37,7 @@ struct impl {
       auto itr = existing_lender.find( c.lender_n );
       eosio_assert(itr == existing_lender.end(), "lender already exists");
 
-      existing_lender.emplace(adminl, [&]( auto& g ) {
+      existing_lender.emplace(N(adminl), [&]( auto& g ) {
          g.lender_n             = c.lender_n;
          g.pkey_l               = c.pkey_l;
          g.balance              = 0;
@@ -55,7 +57,7 @@ struct impl {
       auto itr = existing_lender.find( c.pkey_l );
       eosio_assert(itr != existing_lender.end(), "lender doesnot exists");
 
-      existing_lender.modify(itr, admin_l, [&]( auto& g ) {
+      existing_lender.modify(itr, N(adminl), [&]( auto& g ) {
          g.balance              = c.balance;
          g.lending_score        = c.lending_score;
          g.age                  = c.age;
@@ -65,6 +67,21 @@ struct impl {
          g.epoch_ist            = current_time;
       });
    }
+   void on(const close_l& c) {
+      require_auth(c.lender_n);
+
+      // Check if lender exists
+      lenders existing_lender(code_account, c.pkey_l);
+      auto itr = existing_lender.find( c.pkey_l );
+      eosio_assert(itr != existing_lender.end(), "lender doesnot exists");
+
+      //check if lender has any current lendings
+      lendings existing_lender_lendings (code_account, c.pkey_l);
+      auto itr2 = existing_lender_lendings.find(c.pkey_l);
+      eosio_assert(itr2 == existing_lender_lendings.end(), "lender has some lendings, cannot close before lending is closed");
+      
+      existing_lender.erase(itr);
+   }
   void on(const create_borrower& c) {
       require_auth(c.borrower_n);
 
@@ -73,7 +90,7 @@ struct impl {
       auto itr = existing_borrower.find( c.borrower_n );
       eosio_assert(itr == existing_borrower.end(), "borrower already exists");
 
-      existing_borrower.emplace(c.borrower_n, [&]( auto& g ) {
+      existing_borrower.emplace(N(adminb), [&]( auto& g ) {
          g.borrower_n             = c.borrower_n;
          g.pkey_b                 = c.pkey_b;
          g.cibil_score            = 0;
@@ -94,7 +111,7 @@ struct impl {
       auto itr = existing_borrower.find( c.pkey_b);
       eosio_assert(itr != existing_borrower.end(), "borrower doesnot exists");
 
-      existing_borrower.modify(itr, adminb, [&]( auto& g ) {
+      existing_borrower.modify(itr, N(adminb), [&]( auto& g ) {
          g.cibil_score            = g.cibil_score;
          g.risk_category          = g.risk_category;
          g.age                    = c.age;
@@ -107,6 +124,21 @@ struct impl {
 
        });
    }
+   void on(const close_b& c) {
+      require_auth(c.borrower_n);
+
+      // Check if lender exists
+      borrowers existing_borrower(code_account, c.pkey_b);
+      auto itr = existing_borrower.find( c.pkey_b );
+      eosio_assert(itr != existing_borrower.end(), "borrower doesnot exists");
+
+      //check if lender has any current lendings
+      lendings existing_b_lendings (code_account, c.pkey_b);
+      auto itr2 = existing_b_lendings.find(c.pkey_b);
+      eosio_assert(itr2 == existing_b_lendings.end(), "borrower has some lendings, cannot close before lending is closed");
+      
+      existing_borrower.erase(itr);
+   }
 
   void on(const create_lending& c) {
       
@@ -116,7 +148,7 @@ struct impl {
       auto itr1 = existing_lender.find( c.pkey_l);
       eosio_assert(itr1 != existing_lender.end(), "lender doesnot exists");
 
-      require_auth(itr->lender_n);
+      require_auth(itr1->lender_n);
 
       //age check
       eosio_assert(itr1->age >age_limit, "lender is not eligible by age");
@@ -168,7 +200,7 @@ struct impl {
       eosio_assert(c.net_borrowed < borrowing_limit, "borrower crossed borrowing limit");
       // lender exposore to borrower should not be more than 20% of net borrowed or more than per lending limit
 
-      eosio_assert(c.principal < per_lending_limit && c.principal < net_borrowed/5, " lender has crossed per lending limits")
+      eosio_assert(c.principal < per_lending_limit && c.principal < c.net_borrowed/5, " lender has crossed per lending limits");
 
          //total time period check on current lending
       eosio_assert(c.maturity < max_months, "maturity limit has been crossed");
@@ -176,7 +208,7 @@ struct impl {
       eosio_assert(c.interest < interest_limit, "interest limit has been crossed");
 
         
-      existing_lender_lendings.emplace(adminlen, [&]( auto& g ) {
+      existing_lender_lendings.emplace(N(adminlen), [&]( auto& g ) {
          g.pkey_l               = c.pkey_l;
          g.pkey_b               = c.pkey_b;
          g.net_borrowed         = c.net_borrowed;
@@ -228,7 +260,7 @@ struct impl {
       eosio_assert(itr != existing_lendings.end(), "lending doesn't exists");
       while(itr!=existing_lendings.end() &&  itr->loan_id== c.loan_id){
           // updatelending
-          existing_lendings.modify(itr, adminlen, [&]( auto& g ) {
+          existing_lendings.modify(itr, N(adminlen), [&]( auto& g ) {
           g.months_left          = c.months_left;
           g.penalty              = c.penalty*g.principal/g.net_borrowed; //dividing penalty by the ratio of money lended
           g.epoch_ist            = current_time;
@@ -248,10 +280,14 @@ struct impl {
             impl::on(eosio::unpack_action_data<p2p_lending::create_lender>());
          } else if (action == N(updatel)) {
             impl::on(eosio::unpack_action_data<p2p_lending::update_l>());
+         } else if (action == N(closel)) {
+            impl::on(eosio::unpack_action_data<p2p_lending::close_l>());
          } else if (action == N(createb)) {
             impl::on(eosio::unpack_action_data<p2p_lending::create_borrower>());
          } else if (action == N(updateb)) {
             impl::on(eosio::unpack_action_data<p2p_lending::update_b>());
+         } else if (action == N(closeb)) {
+            impl::on(eosio::unpack_action_data<p2p_lending::close_b>());
          } else if (action == N(createlen)) {
             impl::on(eosio::unpack_action_data<p2p_lending::create_lending>());
          } else if (action == N(updatelen)) {
